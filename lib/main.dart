@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:talksy/views/home_page.dart';
+import 'package:talksy/app/routes/routes.dart';
+import 'package:talksy/views/login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +13,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: const LoginView(),
+      routes: AppRoutes.routes,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }
