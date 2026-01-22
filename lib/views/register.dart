@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:talksy/components/textfield.dart';
+import 'package:talksy/components/button.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({Key? key}) : super(key: key);
@@ -13,8 +15,6 @@ class _RegisterViewState extends State<RegisterView> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
   late TextEditingController _nameController;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -46,17 +46,12 @@ class _RegisterViewState extends State<RegisterView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 32),
-              // Name Field
-              TextFormField(
+
+              CustomTextField(
+                labelText: 'Full Name',
+                hintText: 'Enter your full name',
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  hintText: 'Enter your full name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.person),
-                ),
+                prefixIcon: Icons.person,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your full name';
@@ -65,18 +60,12 @@ class _RegisterViewState extends State<RegisterView> {
                 },
               ),
               const SizedBox(height: 16),
-              // Email Field
-              TextFormField(
+              CustomTextField(
+                labelText: 'Email',
+                hintText: 'Enter your email',
                 controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.email),
-                ),
                 keyboardType: TextInputType.emailAddress,
+                prefixIcon: Icons.email,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter an email';
@@ -88,30 +77,13 @@ class _RegisterViewState extends State<RegisterView> {
                 },
               ),
               const SizedBox(height: 16),
-              // Password Field
-              TextFormField(
+
+              CustomTextField(
+                labelText: 'Password',
+                hintText: 'Enter your password',
                 controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
-                obscureText: _obscurePassword,
+                prefixIcon: Icons.lock,
+                isPasswordField: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a password';
@@ -123,30 +95,13 @@ class _RegisterViewState extends State<RegisterView> {
                 },
               ),
               const SizedBox(height: 16),
-              // Confirm Password Field
-              TextFormField(
+
+              CustomTextField(
+                labelText: 'Confirm Password',
+                hintText: 'Confirm your password',
                 controller: _confirmPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Password',
-                  hintText: 'Confirm your password',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                ),
-                obscureText: _obscureConfirmPassword,
+                prefixIcon: Icons.lock,
+                isPasswordField: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please confirm your password';
@@ -158,23 +113,19 @@ class _RegisterViewState extends State<RegisterView> {
                 },
               ),
               const SizedBox(height: 32),
-              // Register Button
-              ElevatedButton(
+
+              CustomButton(
+                label: 'Register',
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    // TODO: Implement registration logic
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Registration submitted')),
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('Register', style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(height: 16),
-              // Login Link
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

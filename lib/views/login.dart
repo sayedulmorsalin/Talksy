@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:talksy/components/textfield.dart';
+import 'package:talksy/components/button.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({Key? key}) : super(key: key);
@@ -11,7 +13,6 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
-  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -39,7 +40,7 @@ class _LoginViewState extends State<LoginView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 64),
-              // Logo/Title
+
               const Text(
                 'Welcome Back',
                 textAlign: TextAlign.center,
@@ -52,18 +53,13 @@ class _LoginViewState extends State<LoginView> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 48),
-              // Email Field
-              TextFormField(
+
+              CustomTextField(
+                labelText: 'Email',
+                hintText: 'Enter your email',
                 controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.email),
-                ),
                 keyboardType: TextInputType.emailAddress,
+                prefixIcon: Icons.email,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter an email';
@@ -75,30 +71,13 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               const SizedBox(height: 16),
-              // Password Field
-              TextFormField(
+
+              CustomTextField(
+                labelText: 'Password',
+                hintText: 'Enter your password',
                 controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
-                obscureText: _obscurePassword,
+                prefixIcon: Icons.lock,
+                isPasswordField: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a password';
@@ -107,34 +86,29 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               const SizedBox(height: 8),
-              // Forgot Password Link
+
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    // TODO: Implement forgot password
-                  },
+                  onPressed: () {},
                   child: const Text('Forgot Password?'),
                 ),
               ),
               const SizedBox(height: 32),
-              // Login Button
-              ElevatedButton(
+
+              CustomButton(
+                label: 'Login',
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    // TODO: Implement login logic
+                    Navigator.of(context).pushReplacementNamed('/home');
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Login submitted')),
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('Login', style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(height: 16),
-              // Register Link
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
