@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:talksy/components/textfield.dart';
 import 'package:talksy/components/button.dart';
+import 'package:talksy/services/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({Key? key}) : super(key: key);
@@ -15,6 +17,7 @@ class _RegisterViewState extends State<RegisterView> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
   late TextEditingController _nameController;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -32,6 +35,31 @@ class _RegisterViewState extends State<RegisterView> {
     _confirmPasswordController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuthService.instance.signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/home');
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Registration failed')),
+      );
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An unexpected error occurred {}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -115,13 +143,11 @@ class _RegisterViewState extends State<RegisterView> {
               const SizedBox(height: 32),
 
               CustomButton(
-                label: 'Register',
+                label: _isLoading ? 'Creating...' : 'Register',
+                isLoading: _isLoading,
                 onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Registration submitted')),
-                    );
-                  }
+                  if (_isLoading) return;
+                  _handleRegister();
                 },
               ),
               const SizedBox(height: 16),

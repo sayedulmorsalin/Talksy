@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:talksy/components/textfield.dart';
 import 'package:talksy/components/button.dart';
+import 'package:talksy/services/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({Key? key}) : super(key: key);
@@ -13,6 +15,7 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -26,6 +29,51 @@ class _LoginViewState extends State<LoginView> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handlePasswordReset() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email to reset password'),
+        ),
+      );
+      return;
+    }
+    try {
+      await FirebaseAuthService.instance.sendPasswordResetEmail(email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent')),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Failed to send reset email')),
+      );
+    }
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuthService.instance.signInWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/home');
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An unexpected error occurred')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -90,21 +138,20 @@ class _LoginViewState extends State<LoginView> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    _handlePasswordReset();
+                  },
                   child: const Text('Forgot Password?'),
                 ),
               ),
               const SizedBox(height: 32),
 
               CustomButton(
-                label: 'Login',
+                label: _isLoading ? 'Signing in...' : 'Login',
+                isLoading: _isLoading,
                 onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    Navigator.of(context).pushReplacementNamed('/home');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Login submitted')),
-                    );
-                  }
+                  if (_isLoading) return;
+                  _handleLogin();
                 },
               ),
               const SizedBox(height: 16),
