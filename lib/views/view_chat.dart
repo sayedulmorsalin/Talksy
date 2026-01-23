@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:talksy/services/firebase_auth.dart';
+import 'package:talksy/services/sms_service.dart';
 
 class Message {
   final String text;
@@ -11,11 +14,13 @@ class Message {
 class ViewChatPage extends StatefulWidget {
   final String contactName;
   final String contactAvatar;
+  final String contactId;
 
   const ViewChatPage({
     Key? key,
     required this.contactName,
     required this.contactAvatar,
+    required this.contactId,
   }) : super(key: key);
 
   @override
@@ -25,56 +30,24 @@ class ViewChatPage extends StatefulWidget {
 class _ViewChatPageState extends State<ViewChatPage> {
   late TextEditingController _messageController;
   late ScrollController _scrollController;
-
-  final List<Message> messages = [
-    Message(text: 'Hi there!', isReceived: true, time: '10:30 AM'),
-    Message(text: 'Hey! How are you?', isReceived: false, time: '10:31 AM'),
-    Message(
-      text: 'I\'m doing great, thanks for asking!',
-      isReceived: true,
-      time: '10:32 AM',
-    ),
-    Message(text: 'That\'s awesome!', isReceived: false, time: '10:33 AM'),
-    Message(
-      text: 'How about you? What have you been up to?',
-      isReceived: true,
-      time: '10:34 AM',
-    ),
-    Message(
-      text: 'Just been working on some projects lately.',
-      isReceived: false,
-      time: '10:35 AM',
-    ),
-    Message(
-      text: 'Oh nice! I\'d love to hear more about them.',
-      isReceived: true,
-      time: '10:36 AM',
-    ),
-    Message(
-      text: 'Sure! Let\'s catch up soon over coffee ☕',
-      isReceived: false,
-      time: '10:37 AM',
-    ),
-    Message(
-      text: 'Definitely! That sounds perfect.',
-      isReceived: true,
-      time: '10:38 AM',
-    ),
-    Message(
-      text: 'Great! See you soon then 😊',
-      isReceived: false,
-      time: '10:39 AM',
-    ),
-  ];
+  late String _chatRoomId;
 
   @override
   void initState() {
     super.initState();
     _messageController = TextEditingController();
     _scrollController = ScrollController();
+    _generateChatRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+  }
+
+  void _generateChatRoomId() {
+    final currentUserId = FirebaseAuthService.instance.currentUser?.uid ?? '';
+    final userIds = [currentUserId, widget.contactId];
+    userIds.sort();
+    _chatRoomId = userIds.join('_');
   }
 
   @override
@@ -94,25 +67,49 @@ class _ViewChatPageState extends State<ViewChatPage> {
     }
   }
 
-  void _sendMessage() {
-    if (_messageController.text.isNotEmpty) {
-      setState(() {
-        messages.add(
-          Message(
-            text: _messageController.text,
-            isReceived: false,
-            time: _getCurrentTime(),
-          ),
-        );
-      });
-      _messageController.clear();
+  void _sendMessage() async {
+    if (_messageController.text.isEmpty) return;
+
+    final messageText = _messageController.text;
+    final senderName =
+        FirebaseAuthService.instance.currentUser?.displayName ?? 'Unknown';
+    _messageController.clear();
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('chatRooms')
+          .doc(_chatRoomId)
+          .collection('messages')
+          .add({
+            'text': messageText,
+            'senderId': FirebaseAuthService.instance.currentUser?.uid,
+            'senderName': senderName,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+
+      await _sendNotification(senderName, messageText);
       _scrollToBottom();
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
     }
   }
 
-  String _getCurrentTime() {
-    final now = DateTime.now();
-    return '${now.hour}:${now.minute.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
+  Future<void> _sendNotification(String senderName, String messageText) async {
+    try {
+      await SMSService.instance.sendSMS(
+        widget.contactId,
+        senderName,
+        messageText,
+      );
+    } catch (e) {
+      print('Error sending notification: $e');
+    }
+  }
+
+  String _formatTime(DateTime dateTime) {
+    return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -145,13 +142,57 @@ class _ViewChatPageState extends State<ViewChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return MessageBubble(message: message);
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chatRooms')
+                  .doc(_chatRoomId)
+                  .collection('messages')
+                  .orderBy('timestamp', descending: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text('No messages yet. Start a conversation!'),
+                  );
+                }
+
+                final messages = snapshot.data!.docs;
+                final currentUserId =
+                    FirebaseAuthService.instance.currentUser?.uid;
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final messageData =
+                        messages[index].data() as Map<String, dynamic>;
+                    final isReceived = messageData['senderId'] != currentUserId;
+
+                    final timestamp = messageData['timestamp'] as Timestamp?;
+                    final time = timestamp != null
+                        ? _formatTime(timestamp.toDate())
+                        : '';
+
+                    final message = Message(
+                      text: messageData['text'] ?? '',
+                      isReceived: isReceived,
+                      time: time,
+                    );
+                    return MessageBubble(message: message);
+                  },
+                );
               },
             ),
           ),

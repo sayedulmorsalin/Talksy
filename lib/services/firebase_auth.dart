@@ -48,6 +48,19 @@ class FirebaseAuthService {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
+  Future<void> updateProfile({String? displayName, String? photoURL}) async {
+    final user = _auth.currentUser;
+    if (user == null)
+      throw FirebaseAuthException(
+        code: 'no-user',
+        message: 'No user is signed in',
+      );
+
+    await user.updateDisplayName(displayName);
+    await user.updatePhotoURL(photoURL);
+    await user.reload();
+  }
+
   Future<UserCredential> reauthenticateWithEmail({
     required String email,
     required String password,

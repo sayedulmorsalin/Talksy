@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:talksy/app/routes/routes.dart';
+import 'package:talksy/services/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,44 +14,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late TabController _tabController;
   int _selectedIndex = 0;
 
-  final List<ChatItem> chatItems = [
-    ChatItem(
-      name: 'John Doe',
-      lastMessage: 'Hey, how are you?',
-      time: '2:30 PM',
-      avatar: 'JD',
-      unreadCount: 2,
-    ),
-    ChatItem(
-      name: 'Sarah Smith',
-      lastMessage: 'See you tomorrow!',
-      time: '1:45 PM',
-      avatar: 'SS',
-      unreadCount: 0,
-    ),
-    ChatItem(
-      name: 'Mike Johnson',
-      lastMessage: 'Thanks for the update',
-      time: 'Yesterday',
-      avatar: 'MJ',
-      unreadCount: 1,
-    ),
-    ChatItem(
-      name: 'Emma Wilson',
-      lastMessage: 'Sounds good!',
-      time: 'Tuesday',
-      avatar: 'EW',
-      unreadCount: 0,
-    ),
-    ChatItem(
-      name: 'David Brown',
-      lastMessage: 'Let me check and get back',
-      time: 'Monday',
-      avatar: 'DB',
-      unreadCount: 0,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -60,6 +24,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _handleLogout() async {
+    try {
+      await FirebaseAuthService.instance.signOut();
+      if (mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
+      }
+    }
   }
 
   @override
@@ -76,11 +57,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         actions: [
           IconButton(icon: const Icon(Icons.search), onPressed: () {}),
           PopupMenuButton(
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              }
+            },
             itemBuilder: (BuildContext context) => [
-              const PopupMenuItem(child: Text('New group')),
-              const PopupMenuItem(child: Text('New broadcast')),
-              const PopupMenuItem(child: Text('Linked devices')),
-              const PopupMenuItem(child: Text('Settings')),
+              const PopupMenuItem(value: 'newgroup', child: Text('New group')),
+              const PopupMenuItem(
+                value: 'broadcast',
+                child: Text('New broadcast'),
+              ),
+              const PopupMenuItem(
+                value: 'devices',
+                child: Text('Linked devices'),
+              ),
+              const PopupMenuItem(value: 'settings', child: Text('Settings')),
+              const PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
           ),
         ],
@@ -98,11 +91,70 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: [
-          ListView.builder(
-            itemCount: chatItems.length,
-            itemBuilder: (context, index) {
-              final chat = chatItems[index];
-              return ChatTile(chat: chat);
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No users available',
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final users = snapshot.data!.docs;
+              final currentUserId =
+                  FirebaseAuthService.instance.currentUser?.uid;
+
+              return ListView.builder(
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final userData = users[index].data() as Map<String, dynamic>;
+                  final userId = users[index].id;
+
+                  if (userId == currentUserId) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final name = userData['name'] ?? 'Unknown User';
+                  final email = userData['email'] ?? '';
+
+                  final avatar = name.isNotEmpty
+                      ? name.split(' ').map((e) => e[0]).join().toUpperCase()
+                      : 'U';
+
+                  final chat = ChatItem(
+                    name: name,
+                    lastMessage: email,
+                    time: 'Now',
+                    avatar: avatar,
+                    unreadCount: 0,
+                    userId: userId,
+                  );
+
+                  return ChatTile(chat: chat);
+                },
+              );
             },
           ),
           Center(
@@ -164,6 +216,7 @@ class ChatItem {
   final String time;
   final String avatar;
   final int unreadCount;
+  final String userId;
 
   ChatItem({
     required this.name,
@@ -171,6 +224,7 @@ class ChatItem {
     required this.time,
     required this.avatar,
     required this.unreadCount,
+    required this.userId,
   });
 }
 
@@ -230,7 +284,11 @@ class ChatTile extends StatelessWidget {
         Navigator.pushNamed(
           context,
           AppRoutes.chat,
-          arguments: {'contactName': chat.name, 'contactAvatar': chat.avatar},
+          arguments: {
+            'contactName': chat.name,
+            'contactAvatar': chat.avatar,
+            'contactId': chat.userId,
+          },
         );
       },
     );

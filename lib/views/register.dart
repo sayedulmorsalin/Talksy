@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:talksy/components/textfield.dart';
 import 'package:talksy/components/button.dart';
 import 'package:talksy/services/firebase_auth.dart';
+import 'package:talksy/services/fcm_service.dart';
+import 'package:talksy/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterView extends StatefulWidget {
@@ -46,6 +48,21 @@ class _RegisterViewState extends State<RegisterView> {
         password: _passwordController.text,
       );
 
+      await FirebaseAuthService.instance.updateProfile(
+        displayName: _nameController.text.trim(),
+      );
+
+      await FCMService.instance.requestPermission();
+      final fcmToken = await FCMService.instance.getFCMToken();
+
+      if (fcmToken != null) {
+        await FirestoreService.instance.saveUserProfile(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          fcmToken: fcmToken,
+        );
+      }
+
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/home');
     } on FirebaseAuthException catch (e) {
@@ -53,9 +70,8 @@ class _RegisterViewState extends State<RegisterView> {
         SnackBar(content: Text(e.message ?? 'Registration failed')),
       );
     } catch (e) {
-      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An unexpected error occurred {}')),
+        const SnackBar(content: Text('An unexpected error occurred')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

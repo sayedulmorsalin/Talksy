@@ -32,6 +32,7 @@ class AppRoutes {
           builder: (_) => ViewChatPage(
             contactName: args?['contactName'] ?? 'Unknown',
             contactAvatar: args?['contactAvatar'] ?? 'U',
+            contactId: args?['contactId'] ?? '',
           ),
         );
       default:

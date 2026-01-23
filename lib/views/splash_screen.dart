@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 200),
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _controller.forward();
@@ -26,10 +26,7 @@ class _SplashScreenState extends State<SplashScreen>
     // After animation completes (plus a brief pause) check auth and navigate.
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Future.delayed(
-          const Duration(milliseconds: 500),
-          _checkAuthAndNavigate,
-        );
+        Future.delayed(const Duration(milliseconds: 50), _checkAuthAndNavigate);
       }
     });
   }
