@@ -39,6 +39,7 @@ dependencies:
   cloud_firestore: ^6.1.2
   firebase_messaging: ^16.1.1
   http: ^1.1.0
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +56,15 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/talksy.png"
+  adaptive_icon_background: "#075E54"
+  adaptive_icon_foreground: "assets/talksy.png"
+
 flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
