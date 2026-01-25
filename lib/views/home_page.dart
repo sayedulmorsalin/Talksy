@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:talksy/app/routes/routes.dart';
+import 'package:talksy/components/textfield.dart';
 import 'package:talksy/services/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:talksy/services/firestore_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,16 +15,20 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late TabController _tabController;
   int _selectedIndex = 0;
+  late TextEditingController _searchController;
+  FirestoreService firestoreService = FirestoreService.instance;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _searchController = TextEditingController();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -55,7 +61,103 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         backgroundColor: const Color.fromARGB(255, 7, 125, 112),
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              _searchController.clear();
+
+              showDialog(
+                context: context,
+                builder: (_) {
+                  Map<String, dynamic>? userData;
+                  bool loading = false;
+                  bool searched = false;
+
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return AlertDialog(
+                        title: const Text("Search by Email"),
+
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CustomTextField(
+                              labelText: 'Email',
+                              hintText: 'Enter email to search',
+                              controller: _searchController,
+                              prefixIcon: Icons.email,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Loading
+                            if (loading) const CircularProgressIndicator(),
+
+                            // Not found
+                            if (searched && userData == null && !loading)
+                              const Text("No user found"),
+
+                            // Found user preview
+                            if (userData != null) ...[
+                              ListTile(
+                                leading: CircleAvatar(
+                                  child: Text(
+                                    userData!['name'][0].toUpperCase(),
+                                  ),
+                                ),
+                                title: Text(userData!['name']),
+                                subtitle: Text(userData!['email']),
+                              ),
+                            ],
+                          ],
+                        ),
+
+                        actions: [
+                          // Cancel
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancel"),
+                          ),
+
+                          // Search button
+                          ElevatedButton(
+                            onPressed: () async {
+                              final email = _searchController.text.trim();
+
+                              setState(() {
+                                loading = true;
+                                searched = true;
+                                userData = null;
+                              });
+
+                              final result = await firestoreService
+                                  .getUserProfileByEmail(email);
+
+                              setState(() {
+                                loading = false;
+                                userData = result;
+                              });
+                            },
+                            child: const Text("Search"),
+                          ),
+
+                          // NEW BUTTON — only shows if user found
+                          if (userData != null)
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+
+                              },
+                              child: const Text("Request Chat"),
+                            ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
           PopupMenuButton(
             onSelected: (value) {
               if (value == 'logout') {

@@ -64,6 +64,20 @@ class FirestoreService {
     return doc.data();
   }
 
+  Future<Map<String, dynamic>?> getUserProfileByEmail(String email) async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      return querySnapshot.docs.first.data();
+    } else {
+      return null;
+    }
+  }
+
   Future<void> deleteUserProfile(String uid) async {
     await _firestore.collection('users').doc(uid).delete();
   }
