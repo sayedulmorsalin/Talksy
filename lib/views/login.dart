@@ -79,7 +79,14 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(
+        title: const Text(
+          'Login',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: const Color.fromARGB(255, 7, 125, 112),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -149,6 +156,8 @@ class _LoginViewState extends State<LoginView> {
               CustomButton(
                 label: _isLoading ? 'Signing in...' : 'Login',
                 isLoading: _isLoading,
+                backgroundColor: const Color.fromARGB(255, 33, 166, 150),
+                textColor: Colors.white,
                 onPressed: () {
                   if (_isLoading) return;
                   _handleLogin();

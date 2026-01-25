@@ -81,7 +81,15 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(
+        title: const Text(
+          'Register',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: const Color.fromARGB(255, 7, 125, 112),
+      ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -161,6 +169,8 @@ class _RegisterViewState extends State<RegisterView> {
               CustomButton(
                 label: _isLoading ? 'Creating...' : 'Register',
                 isLoading: _isLoading,
+                backgroundColor: const Color.fromARGB(255, 33, 166, 150),
+                textColor: Colors.white,
                 onPressed: () {
                   if (_isLoading) return;
                   _handleRegister();

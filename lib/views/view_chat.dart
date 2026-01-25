@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:talksy/services/firebase_auth.dart';
+import 'package:talksy/services/firestore_service.dart';
 import 'package:talksy/services/sms_service.dart';
 
 class Message {
@@ -28,6 +29,7 @@ class ViewChatPage extends StatefulWidget {
 }
 
 class _ViewChatPageState extends State<ViewChatPage> {
+  FirestoreService firestoreService = FirestoreService.instance;
   late TextEditingController _messageController;
   late ScrollController _scrollController;
   late String _chatRoomId;
@@ -75,18 +77,15 @@ class _ViewChatPageState extends State<ViewChatPage> {
         FirebaseAuthService.instance.currentUser?.displayName ?? 'Unknown';
     _messageController.clear();
 
-    try {
-      await FirebaseFirestore.instance
-          .collection('chatRooms')
-          .doc(_chatRoomId)
-          .collection('messages')
-          .add({
-            'text': messageText,
-            'senderId': FirebaseAuthService.instance.currentUser?.uid,
-            'senderName': senderName,
-            'timestamp': FieldValue.serverTimestamp(),
-          });
+    final currentUserId = FirebaseAuthService.instance.currentUser?.uid;
 
+    try {
+      await firestoreService.sendMessage(
+        chatRoomId: _chatRoomId,
+        senderId: currentUserId!,
+        senderName: senderName,
+        message: messageText,
+      );
       await _sendNotification(senderName, messageText);
       _scrollToBottom();
     } catch (e) {
@@ -104,7 +103,9 @@ class _ViewChatPageState extends State<ViewChatPage> {
         messageText,
       );
     } catch (e) {
-      print('Error sending notification: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to send notification: $e')));
     }
   }
 
@@ -116,7 +117,7 @@ class _ViewChatPageState extends State<ViewChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF075E54),
+        backgroundColor: const Color.fromARGB(255, 7, 125, 112),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

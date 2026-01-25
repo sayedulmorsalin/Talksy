@@ -27,6 +27,28 @@ class FirestoreService {
     });
   }
 
+  Future<void> sendMessage( {
+    required String chatRoomId,
+    required String senderName,
+    required String senderId,
+    required String message,
+  }) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('chatRooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .add({
+            'text': message,
+            'senderId': senderId,
+            'senderName': senderName,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      throw Exception('Failed to send message: $e');
+    }
+  }
+
   Future<void> updateUserFCMToken(String fcmToken) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('No user is signed in');
