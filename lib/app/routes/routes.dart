@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:talksy/views/home/home_page.dart';
 import 'package:talksy/views/login.dart';
 import 'package:talksy/views/register.dart';
-import 'package:talksy/views/home_page.dart';
 import 'package:talksy/views/view_chat.dart';
 
 class AppRoutes {
